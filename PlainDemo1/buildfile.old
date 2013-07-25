@@ -1,0 +1,8 @@
+require 'buildr/kawa'
+
+define 'PlainDemo1' do
+  # Run with:
+  # CLASSPATH=/home/marius/p/kawa-android/PlainDemo1/target/classes:/usr/local/share/java/kawa.jar java MyMain
+  project.version = '1.0'
+  compile.options.kawac = ['--main']
+end

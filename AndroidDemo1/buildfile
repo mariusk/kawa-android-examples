@@ -1,0 +1,4 @@
+require 'buildr/kawa'
+
+define 'AndroidDemo1' do
+end
