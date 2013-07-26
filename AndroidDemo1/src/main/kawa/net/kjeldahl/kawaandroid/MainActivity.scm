@@ -1,4 +1,4 @@
-(module-name net.kjeldahl.kawaandroid.)
+(module-name net.kjeldahl.kawaandroid.MainActivity)
 (require 'android-defs)
 ;;(define-simple-class MainActivity (android.app.Activity))
 (activity MainActivity
