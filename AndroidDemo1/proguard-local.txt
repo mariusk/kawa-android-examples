@@ -1,7 +1,18 @@
+#-dontobfuscate
+#-dontoptimize
+
 -dontwarn gnu.**
 -dontwarn kawa.**
 
 -keep class gnu.expr.Language
--keep class gnu.mapping.**
+-keep class gnu.mapping.Location
+-keep class gnu.mapping.Symbol
+-keep class gnu.mapping.Procedure
+-keep class gnu.mapping.Environment
+-keep class gnu.mapping.CallContext
+-keep class gnu.mapping.Values
 -keep class gnu.lists.LList
--keep class kawa.lang.*
+-keep class kawa.lang.Pattern
+-keep class kawa.lang.SyntaxPattern
+-keep class kawa.lang.TemplateScope
+

@@ -3,7 +3,8 @@ require 'buildr/kawa'
 ENV['JAVA_HOME'] ||= `detectjavahome`.chomp # Replace with whatever is the correct path for the JDK
 JAVAHOME =  ENV['JAVA_HOME'].chomp
 ENV['KAWA_HOME'] ||= '/usr/local/share/java'
-KAWAHOME = ENV['KAVA_HOME']
+KAWAHOME = ENV['KAWA_HOME']
+KAWA = "#{KAWAHOME}/kawart-1.13.1.jar"
 
 define "kawa-android-examples" do
 
@@ -19,7 +20,7 @@ define "kawa-android-examples" do
     # java -cp target/PlainDemo2-1.0.jar MyMain
     project.version = '1.0'
     compile.options.kawac = ['--main']
-    package(:jar).merge("#{KAWAHOME}/kawa.jar")
+    package(:jar).merge(KAWA)
     # Proguard:
     # /opt/android-studio/sdk/tools/proguard/bin/proguard.sh -optimizationpasses 5 -injars target/PlainDemo2-1.0.jar -outjars target/test.jar -libraryjars /usr/lib/jvm/java-7-oracle/jre/lib/rt.jar -dontwarn android.\*\* -keep "class MyMain { *; }" -allowaccessmodification -verbose
     # 421181 after, 2528955 before
@@ -61,26 +62,31 @@ define "kawa-android-examples" do
 
     subname = name.split(':')[1]
 
-    file _("#{BUILD}/resources.ap_") do |t|
+    file _("#{BUILD}/a") do |t|
+    #file _("#{BUILD}/classes") do |t|
       mkdir_p _("#{BUILD}/classes")
       mkdir_p _("#{BUILD}/libs")
-      cmdline = "#{SDKTOOLSPATH}/aapt package -f -M AndroidManifest.xml -S #{SOURCES}/res -J #{BUILD}/classes -F #{t} -I #{ANDROIDJAR}"
+      cmdline = "#{SDKTOOLSPATH}/aapt package -f -M AndroidManifest.xml -S #{SOURCES}/res -J #{BUILD}/classes -F #{BUILD}/resources.ap_ -I #{ANDROIDJAR}"
       cmdline += " -S #{SOURCES}/res" if File.directory?("#{SOURCES}/res")
       cmdline += " -A assets" if File.directory?("assets")
-      runcmdlines([cmdline])
+      runcmdlines([cmdline, "touch #{t}"])
     end
 
-    compile(_(SOURCES)).into(_("#{BUILD}/classes")).with(_("#{BUILD}/resources.ap_")).with(ANDROIDJAR)
+    #compile(_(SOURCES)).into(_("#{BUILD}/classes")).with(_("#{BUILD}/resources.ap_")).with(ANDROIDJAR)
+    compile(_(SOURCES)).into(_("#{BUILD}/classes")).with(_("#{BUILD}/a")).with(ANDROIDJAR)
     
-    package(:file => "#{subname}/#{BUILD}/unoptimized.jar").merge("#{KAWAHOME}/kawa.jar")
+    package(:file => "#{subname}/#{BUILD}/unoptimized.jar").merge(KAWA)
 
     def apkglines
       [
-       "mv #{BUILD}/unoptimized.jar #{BUILD}/optimized.jar",
+       "cp #{BUILD}/unoptimized.jar #{BUILD}/optimized.jar",
        "rm -rf #{TARGETCLASSES} && mkdir -p #{TARGETCLASSES} && unzip -q #{BUILD}/optimized.jar -d #{TARGETCLASSES}",
        "#{SDKTOOLSPATH}/dx --dex --output=#{BUILD}/classes.dex #{TARGETCLASSES}",
        "cp #{BUILD}/resources.ap_ #{BUILD}/#{APKNAME}.ap_", #; touch #{BUILD}/#{APKNAME}.ap_",
+       #"unzip -l #{BUILD}/#{APKNAME}.ap_ > /tmp/tmp",
        "cd #{BUILD}; #{SDKTOOLSPATH}/aapt add #{APKNAME}.ap_ classes.dex",
+       #"cd #{BUILD}; #{SDKTOOLSPATH}/aapt package -F #{APKNAME}.ap_ classes.dex",
+       #"cd #{BUILD}; jar cf #{APKNAME}.ap_ classes.dex",
        "jarsigner -sigalg MD5withRSA -digestalg SHA1 -keystore my-debug-key.keystore -storepass android -keypass android -signedjar #{BUILD}/#{APKNAME}-#{project.version}-#{$REL}.apk #{BUILD}/#{APKNAME}.ap_ mydebugkey"
       ]
     end
@@ -92,7 +98,7 @@ define "kawa-android-examples" do
     task :pkgrelease => [:compile, :package] do
       $REL = "release"
       mylines = apkglines()
-      mylines[0] = "#{JAVAHOME}/bin/java -jar #{SDKPATH}/tools/proguard/lib/proguard.jar -include #{SDKPATH}/tools/proguard/proguard-android-optimize.txt -include proguard-local.txt -injars #{BUILD}/unoptimized.jar -libraryjars #{ANDROIDJAR} -outjars #{BUILD}/optimized.jar -keep public class #{STARTACTIVITY} -verbose -optimizationpasses 6"
+      mylines.insert(1, "#{JAVAHOME}/bin/java -jar #{SDKPATH}/tools/proguard/lib/proguard.jar -include #{SDKPATH}/tools/proguard/proguard-android-optimize.txt -include proguard-local.txt -injars #{BUILD}/unoptimized.jar -libraryjars #{ANDROIDJAR} -outjars #{BUILD}/optimized.jar -keep public class #{STARTACTIVITY} -verbose -forceprocessing")
       runcmdlines mylines
     end
 
