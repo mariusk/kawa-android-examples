@@ -4,7 +4,6 @@ ENV['JAVA_HOME'] ||= `detectjavahome`.chomp # Replace with whatever is the corre
 JAVAHOME =  ENV['JAVA_HOME'].chomp
 ENV['KAWA_HOME'] ||= '/usr/local/share/java'
 KAWAHOME = ENV['KAVA_HOME']
-KAWAHOME ||= '/usr/local/share/java'
 
 define "kawa-android-examples" do
 
@@ -33,6 +32,7 @@ define "kawa-android-examples" do
     ANDROIDJAR = "#{SDKPATH}/platforms/#{SDKPLATFORM}/android.jar"
     STARTACTIVITY = "net.kjeldahl.kawaandroid.MainActivity"
     #STARTCLASS = "net.kjeldahl.kawaandroid.MainActivity"
+    SOURCES = 'src/main'
     BUILD = "build"
     TARGETCLASSES = "#{BUILD}/classes"
     LIBS = "libs"
@@ -42,11 +42,9 @@ define "kawa-android-examples" do
     compile.options.source = '1.6' # Use Java 1.6 features and bytecode only
     compile.options.target = '1.6'
 
-    resourceFiles = FileList[_("src/main/res/**/*.xml")]
-
     clean {
       #puts "CLEANING"
-      e = 'rm -rf '+_('src/main/gen')+' '+_('build')
+      e = 'rm -rf '+_('#{SOURCES}/gen')+' '+_('build')
       trace(e)
       `#{e}`
     }
@@ -63,34 +61,21 @@ define "kawa-android-examples" do
 
     subname = name.split(':')[1]
 
-    #puts "MMM "+_("#{BUILD}/resources.ap_")
-    #task :androidres => [file(_("#{BUILD}/resources.ap_")) => resourceFiles]  do
-    #task :androidres => [file(_("#{BUILD}/resources.ap_"))]  do
-    #genresources = file(_("build/classes") => resourceFiles) do |dir|
     file _("#{BUILD}/resources.ap_") do |t|
       mkdir_p _("#{BUILD}/classes")
       mkdir_p _("#{BUILD}/libs")
-      runcmdlines(["#{SDKTOOLSPATH}/aapt package -f -M AndroidManifest.xml -A assets -S src/main/res -J #{BUILD}/classes -F #{t} -I #{ANDROIDJAR}"
-                   #,"touch #{t}"
-                  ])
-      #exit();
+      cmdline = "#{SDKTOOLSPATH}/aapt package -f -M AndroidManifest.xml -S #{SOURCES}/res -J #{BUILD}/classes -F #{t} -I #{ANDROIDJAR}"
+      cmdline += " -S #{SOURCES}/res" if File.directory?("#{SOURCES}/res")
+      cmdline += " -A assets" if File.directory?("assets")
+      runcmdlines([cmdline])
     end
 
-    #compile.with ANDROIDJAR
-    #compile([_("src/main")], _("#{BUILD}/classes")).from genresources.to_s
-    #compile([_("src/main")], _("#{BUILD}/classes")).with("#{subname}/#{BUILD}/resources.ap_")
-    #compile(_("src/main")).into(_("#{BUILD}/classes")).with("#{BUILD}/resources.ap_")
-    compile(_("src/main")).into(_("#{BUILD}/classes")).with(_("#{BUILD}/resources.ap_")).with(ANDROIDJAR)
+    compile(_(SOURCES)).into(_("#{BUILD}/classes")).with(_("#{BUILD}/resources.ap_")).with(ANDROIDJAR)
     
-    #package(:file => _("#{BUILD}/unoptimized.jar")).merge('/usr/local/share/java/kawa.jar')
-    #package(:id => 'unoptimized', :type => :jar).merge('/usr/local/share/java/kawa.jar')
-    package(:file => "#{subname}/#{BUILD}/unoptimized.jar").merge('/usr/local/share/java/kawa.jar')
+    package(:file => "#{subname}/#{BUILD}/unoptimized.jar").merge("#{KAWAHOME}/kawa.jar")
 
     def apkglines
       [
-       #"mkdir #{BUILD} &> /dev/null; rm -f #{BUILD}/optimized.jar &> /dev/null",
-       #"#{JAVAHOME}/bin/jar cf #{TARGET}/unoptimized.jar -C #{TARGETCLASSES} .",
-       #"#{JAVAHOME}/bin/java -jar #{SDKPATH}/tools/proguard/lib/proguard.jar -include #{SDKPATH}/tools/proguard/proguard-android-optimize.txt -include proguard-local.txt -injars #{BUILD}/unoptimized.jar -injars #{LIBS}/kawa.jar -libraryjars #{ANDROIDJAR} -outjars #{BUILD}/optimized.jar -keep public class net.kjeldahl.pyram.MainActivity",
        "mv #{BUILD}/unoptimized.jar #{BUILD}/optimized.jar",
        "rm -rf #{TARGETCLASSES} && mkdir -p #{TARGETCLASSES} && unzip -q #{BUILD}/optimized.jar -d #{TARGETCLASSES}",
        "#{SDKTOOLSPATH}/dx --dex --output=#{BUILD}/classes.dex #{TARGETCLASSES}",
@@ -123,7 +108,6 @@ define "kawa-android-examples" do
       runcmdlines cmdlines
     end
 
-    #task :arun => [:androidpkg] do
     task :rundebug do
       arun("debug")
     end
