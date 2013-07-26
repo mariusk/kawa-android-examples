@@ -29,11 +29,11 @@ define "kawa-android-examples" do
     SDKTOOLSPATH = "#{SDKPATH}/build-tools/android-4.2.2"
     ANDROIDJAR = "#{SDKPATH}/platforms/#{SDKPLATFORM}/android.jar"
     STARTACTIVITY = "net.kjeldahl.kawaandroid/.MainActivity"
-    TARGETCLASSES = "target/classes"
     BUILD = "build"
+    TARGETCLASSES = "#{BUILD}/classes"
     LIBS = "libs"
+    APKNAME = "AndroidDemo1"
     project.version = '1.0'
-    APKNAME = "AndroidDemo1-#{project.version}"
     compile.options.source = '1.6' # Use Java 1.6 features and bytecode only
     compile.options.target = '1.6'
 
@@ -76,27 +76,24 @@ define "kawa-android-examples" do
     #compile([_("src/main")], _("#{BUILD}/classes")).with("#{subname}/#{BUILD}/resources.ap_")
     #compile(_("src/main")).into(_("#{BUILD}/classes")).with("#{BUILD}/resources.ap_")
     compile(_("src/main")).into(_("#{BUILD}/classes")).with(_("#{BUILD}/resources.ap_")).with(ANDROIDJAR)
-
-    #def package_as_sources_spec(spec)
-    #  spec.merge({:file => "AA"})
-    #end
-
     
-    package(:file => _("#{BUILD}/unoptimized.jar")).merge('/usr/local/share/java/kawa.jar')
+    #package(:file => _("#{BUILD}/unoptimized.jar")).merge('/usr/local/share/java/kawa.jar')
+    #package(:id => 'unoptimized', :type => :jar).merge('/usr/local/share/java/kawa.jar')
+    package(:file => "#{subname}/#{BUILD}/unoptimized.jar").merge('/usr/local/share/java/kawa.jar')
 
-    task :androidpkg => [:compile, :package] do
+    task :apkg => [:compile, :package] do
       cmdlines = [
                   "pwd",
                   "ls -lad #{BUILD}",
                   #"mkdir #{BUILD} &> /dev/null; rm -f #{BUILD}/optimized.jar &> /dev/null",
-                  #"#{JAVAHOME}/bin/jar cf #{BUILD}/unoptimized.jar -C #{TARGETCLASSES} .",
+                  #"#{JAVAHOME}/bin/jar cf #{TARGET}/unoptimized.jar -C #{TARGETCLASSES} .",
                   #"#{JAVAHOME}/bin/java -jar #{SDKPATH}/tools/proguard/lib/proguard.jar -include #{SDKPATH}/tools/proguard/proguard-android-optimize.txt -include proguard-local.txt -injars #{BUILD}/unoptimized.jar -injars #{LIBS}/kawa.jar -libraryjars #{ANDROIDJAR} -outjars #{BUILD}/optimized.jar -keep public class net.kjeldahl.pyram.MainActivity",
                   "mv #{BUILD}/unoptimized.jar #{BUILD}/optimized.jar",
                   "rm -rf #{TARGETCLASSES} && mkdir -p #{TARGETCLASSES} && unzip #{BUILD}/optimized.jar -d #{TARGETCLASSES}",
                   "#{SDKTOOLSPATH}/dx --dex --output=#{BUILD}/classes.dex #{TARGETCLASSES}",
                   "cp #{BUILD}/resources.ap_ #{BUILD}/#{APKNAME}.ap_", #; touch #{BUILD}/#{APKNAME}.ap_",
                   "cd #{BUILD}; #{SDKTOOLSPATH}/aapt add #{APKNAME}.ap_ classes.dex",
-                  "jarsigner -sigalg MD5withRSA -digestalg SHA1 -keystore my-debug-key.keystore -storepass android -keypass android -signedjar #{BUILD}/#{APKNAME}.apk #{BUILD}/#{APKNAME}.ap_ mydebugkey"
+                  "jarsigner -sigalg MD5withRSA -digestalg SHA1 -keystore my-debug-key.keystore -storepass android -keypass android -signedjar #{BUILD}/#{APKNAME}-#{project.version}.apk #{BUILD}/#{APKNAME}.ap_ mydebugkey"
                  ]
       runcmdlines cmdlines
     end
@@ -105,7 +102,7 @@ define "kawa-android-examples" do
     task :arun do
       #Project.local_task('arun') do |name|
       cmdlines = [
-                  "adb install -r #{BUILD}/#{APKNAME}.apk",
+                  "adb install -r #{BUILD}/#{APKNAME}-#{project.version}.apk",
                   "adb shell am start -n #{STARTACTIVITY}"
                  ]
       runcmdlines cmdlines
