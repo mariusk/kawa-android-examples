@@ -1,0 +1,7 @@
+-dontwarn gnu.**
+-dontwarn kawa.**
+
+-keep class gnu.expr.Language
+-keep class gnu.mapping.**
+-keep class gnu.lists.LList
+-keep class kawa.lang.*
