@@ -51,12 +51,16 @@ define "kawa-android-examples" do
     }
 
     def runcmdlines(cmdlines)
+      d = false
       subname = name.split(':')[1]
       cmdlines.each do |cmd|
-        s = "exec: cd #{subname}; #{cmd}"
-        trace(s)
-        o = `cd #{subname};#{cmd}`
-        trace(o)
+        s = "====> cd #{subname}; #{cmd}"
+        o = `cd #{subname};#{cmd} 2>&1`
+        if d or o.length>0
+          puts s
+          puts o
+          puts
+        end
       end
     end
 
@@ -83,10 +87,7 @@ define "kawa-android-examples" do
        "rm -rf #{TARGETCLASSES} && mkdir -p #{TARGETCLASSES} && unzip -q #{BUILD}/optimized.jar -d #{TARGETCLASSES}",
        "#{SDKTOOLSPATH}/dx --dex --output=#{BUILD}/classes.dex #{TARGETCLASSES}",
        "cp #{BUILD}/resources.ap_ #{BUILD}/#{APKNAME}.ap_", #; touch #{BUILD}/#{APKNAME}.ap_",
-       #"unzip -l #{BUILD}/#{APKNAME}.ap_ > /tmp/tmp",
        "cd #{BUILD}; #{SDKTOOLSPATH}/aapt add #{APKNAME}.ap_ classes.dex",
-       #"cd #{BUILD}; #{SDKTOOLSPATH}/aapt package -F #{APKNAME}.ap_ classes.dex",
-       #"cd #{BUILD}; jar cf #{APKNAME}.ap_ classes.dex",
        "jarsigner -sigalg MD5withRSA -digestalg SHA1 -keystore my-debug-key.keystore -storepass android -keypass android -signedjar #{BUILD}/#{APKNAME}-#{project.version}-#{$REL}.apk #{BUILD}/#{APKNAME}.ap_ mydebugkey"
       ]
     end
